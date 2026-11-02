@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Путешествие Муравьишки 2.0</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    min-height: 100vh; padding: 12px; text-align: center;
+    overflow-x: hidden; user-select: none;
+  }
+  #app { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 24px; color: #2e7d32; margin: 8px 0; }
+  h2 { font-size: 20px; color: #333; margin: 10px 0; }
+  .btn {
+    background: linear-gradient(180deg, #66bb6a, #43a047);
+    color: white; border: none; padding: 14px 24px;
+    border-radius: 14px; font-size: 17px; font-weight: bold;
+    cursor: pointer; margin: 8px; box-shadow: 0 4px 0 #2e7d32;
+    transition: transform .1s;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #2e7d32; }
+  .btn.secondary {
+    background: linear-gradient(180deg, #ffb74d, #fb8c00);
+    box-shadow: 0 4px 0 #e65100;
+  }
+  .btn:disabled { opacity: .4; cursor: default; transform: none; }
+  .card {
+    background: white; border-radius: 20px; padding: 18px;
+    margin: 12px auto; box-shadow: 0 6px 20px rgba(0,0,0,.08);
+  }
+  .hidden { display: none !important; }
+  .progress-bar {
+    height: 12px; background: #dfe6da; border-radius: 10px;
+    overflow: hidden; margin: 10px 0;
+  }
+  .progress-fill {
+    height: 100%; width: 0%; border-radius: 10px;
+    background: linear-gradient(90deg, #66bb6a, #26a69a);
+    transition: width .4s;
+  }
+  .hud {
+    display: flex; justify-content: space-between;
+    font-size: 14px; color: #555; font-weight: bold;
+    padding: 0 4px;
+  }
+  .muravishka { font-size: 56px; display: inline-block; transition: transform .3s; }
+  .muravishka.happy { animation: jump .5s; }
+  .muravishka.sad { animation: shake .4s; }
+  @keyframes jump {
+    0%,100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-20px) scale(1.15); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+
+  /* Сортировка */
+  .items-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 12px 0; min-height: 80px; }
+  .item {
+    font-size: 40px; padding: 8px 12px; background: #fff8e1;
+    border: 3px solid #ffcc80; border-radius: 16px; cursor: pointer;
+    transition: transform .2s; min-width: 60px;
+  }
+  .item:active { transform: scale(.9); }
+  .item.selected {
+    transform: scale(1.2); border-color: #ff7043;
+    box-shadow: 0 0 20px #ffab91;
+  }
+  .item.gone { opacity: 0; transform: scale(0); pointer-events: none; }
+  .baskets { display: flex; gap: 10px; justify-content: center; }
+  .basket {
+    flex: 1; min-height: 110px; border-radius: 18px;
+    padding: 10px; font-weight: bold; font-size: 15px;
+    cursor: pointer; border: 4px dashed; transition: transform .15s;
+  }
+  .basket:active { transform: scale(.97); }
+  .basket.green { background: #e8f5e9; border-color: #66bb6a; color: #2e7d32; }
+  .basket.brown { background: #fff3e0; border-color: #ffa726; color: #e65100; }
+
+  /* Времена года */
+  .seasons-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .season-btn {
+    padding: 16px 8px; border-radius: 18px; border: 3px solid;
+    font-size: 16px; font-weight: bold; cursor: pointer;
+    transition: transform .15s; background: white;
+  }
+  .season-btn:active { transform: scale(.95); }
+  .season-btn .emoji { font-size: 38px; display: block; margin-bottom: 4px; }
+  .s-spring { border-color: #81c784; color: #2e7d32; }
+  .s-summer { border-color: #ffb74d; color: #e65100; }
+  .s-autumn { border-color: #ff8a65; color: #bf360c; }
+  .s-winter { border-color: #64b5f6; color: #0d47a1; }
+  .clue-box {
+    background: #fffde7; padding: 16px; border-radius: 14px;
+    font-size: 17px; margin: 10px 0; border: 3px solid #fff59d;
+  }
+
+  /* Тест */
+  .option-btn {
+    display: block; width: 100%; padding: 14px; margin: 8px 0;
+    background: #f1f8e9; border: 3px solid #aed581;
+    border-radius: 14px; font-size: 16px; cursor: pointer;
+    transition: transform .1s;
+  }
+  .option-btn:active { transform: scale(.97); }
+  .option-btn.correct { background: #a5d6a7; border-color: #2e7d32; }
+  .option-btn.wrong { background: #ffcdd2; border-color: #c62828; }
+  .option-btn:disabled { cursor: default; }
+
+  /* Правда/Неправда */
+  .tf-btns { display: flex; gap: 12px; }
+  .tf-btn {
+    flex: 1; padding: 24px 10px; border-radius: 18px;
+    font-size: 18px; font-weight: bold; cursor: pointer;
+    border: none; color: white; transition: transform .15s;
+  }
+  .tf-btn:active { transform: scale(.95); }
+  .tf-true { background: linear-gradient(180deg, #66bb6a, #43a047); box-shadow: 0 4px 0 #1b5e20; }
+  .tf-false { background: linear-gradient(180deg, #ef5350, #e53935); box-shadow: 0 4px 0 #b71c1c; }
+
+  /* Мемори */
+  .memory-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; margin-top: 10px;
+  }
+  .mem-card {
+    aspect-ratio: 1; font-size: 30px; display: flex;
+    align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #7986cb, #5c6bc0);
+    border-radius: 12px; cursor: pointer;
+    color: white; font-weight: bold; transition: transform .25s;
+    transform-style: preserve-3d;
+  }
+  .mem-card.flipped {
+    background: white; color: #333;
+    border: 3px solid #5c6bc0;
+  }
+  .mem-card.matched { background: #a5d6a7; border: 3px solid #2e7d32; opacity: .7; }
+
+  /* Конфетти */
+  .confetti {
+    position: fixed; width: 10px; height: 10px;
+    top: -20px; z-index: 100; pointer-events: none;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Финальный экран */
+  .stars { font-size: 40px; letter-spacing: 4px; margin: 10px 0; }
+  .diploma {
+    background: linear-gradient(135deg, #fff9c4, #ffe082);
+    border: 4px double #f57c00; padding: 20px; border-radius: 20px;
+    margin: 12px 0;
+  }
+
+  /* Карта станций */
+  .stations-map { display: flex; justify-content: space-around; margin: 10px 0; flex-wrap: wrap; gap: 4px; }
+  .station-dot {
+    width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; border: 3px solid #ccc; background: white;
+    transition: all .3s;
+  }
+  .station-dot.active { border-color: #ff7043; transform: scale(1.15); box-shadow: 0 0 15px #ffab91; }
+  .station-dot.done { background: #a5d6a7; border-color: #2e7d32; }
+  .station-dot.locked { opacity: .4; }
+
+  .streak-badge {
+    display: inline-block; background: #ff7043; color: white;
+    padding: 3px 10px; border-radius: 12px; font-size: 13px;
+    font-weight: bold; margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ГЛАВНЫЙ ЭКРАН -->
+  <div id="screen-start">
+    <h1>🐜 Путешествие Муравьишки 2.0</h1>
+    <div class="card">
+      <div class="muravishka" id="muravishka-start">🐜</div>
+      <p style="font-size:16px;color:#555;">Помоги Муравьишке собрать <b>5 ключей знаний</b>!<br>Игра по курсу «Окружающий мир».</p>
+      <button class="btn" onclick="startGame()">🚀 Начать путешествие</button>
+    </div>
+  </div>
+
+  <!-- ИГРОВОЙ ЭКРАН -->
+  <div id="screen-game" class="hidden">
+    <div class="hud">
+      <span>⭐ Очки: <b id="score-display">0</b></span>
+      <span>🔥 Серия: <b id="streak-display">0</b></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="stations-map" id="stations-map"></div>
+    <div class="muravishka" id="muravishka">🐜</div>
+    <div id="station-title" style="font-size:14px;color:#666;font-weight:bold;margin-bottom:6px;"></div>
+    <div class="card" id="game"></div>
+    <button class="btn secondary hidden" id="nextBtn" onclick="nextStation()">Дальше ➡️</button>
+  </div>
+
+  <!-- ФИНАЛЬНЫЙ ЭКРАН -->
+  <div id="screen-end" class="hidden">
+    <h1>🎉 Победа! 🎉</h1>
+    <div class="diploma">
+      <h2 style="margin:4px 0;">Диплом знатока природы</h2>
+      <p>Вручается <b>юному путешественнику</b></p>
+      <div class="stars" id="final-stars">⭐⭐⭐</div>
+      <p>Очки: <b id="final-score">0</b></p>
+      <p style="font-size:13px;color:#666;">🐜 Муравьишка благодарит тебя!</p>
+    </div>
+    <button class="btn" onclick="location.reload()">🔁 Играть снова</button>
+  </div>
+</div>
+
+<script>
+// ====== ЗВУКИ (Web Audio API) ======
+let audioCtx = null;
+function beep(freq, dur, type='sine') {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.start(); osc.stop(audioCtx.currentTime + dur);
+  } catch(e){}
+}
+function soundCorrect() { beep(880,0.1); setTimeout(()=>beep(1320,0.15),100); }
+function soundWrong() { beep(200,0.2,'square'); }
+function soundWin() {
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.15),i*100));
+}
+
+// ====== КОНФЕТТИ ======
+function confetti() {
+  const colors = ['#ff7043','#66bb6a','#42a5f5','#ffca28','#ab47bc','#ec407a'];
+  for (let i = 0; i < 25; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + '%';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration = (1.5 + Math.random()*1.5) + 's';
+    c.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 3000);
+  }
+}
+
+// ====== СОСТОЯНИЕ ======
+let state = {
+  score: 0,
+  streak: 0,
+  bestStreak: 0,
+  currentStation: 0,
+  completed: [false, false, false, false, false]
+};
+
+const stationInfo = [
+  { icon: '🌿', title: 'Станция 1: Живая и неживая природа' },
+  { icon: '🍂', title: 'Станция 2: Времена года' },
+  { icon: '🦊', title: 'Станция 3: Найди лишнее' },
+  { icon: '🇷🇺', title: 'Станция 4: Правда или нет?' },
+  { icon: '🧠', title: 'Станция 5: Мемори-зоопарк' }
+];
+
+// ====== ОБЩИЕ ФУНКЦИИ ======
+function updateHUD() {
+  document.getElementById('score-display').textContent = state.score;
+  document.getElementById('streak-display').textContent = state.streak;
+}
+function updateProgress() {
+  const done = state.completed.filter(Boolean).length;
+  document.getElementById('progress-fill').style.width = (done/5*100) + '%';
+  const map = document.getElementById('stations-map');
+  map.innerHTML = '';
+  stationInfo.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'station-dot' + (state.completed[i] ? ' done' : i === state.currentStation ? ' active' : '');
+    d.textContent = state.completed[i] ? '✓' : s.icon;
+    map.appendChild(d);
+  });
+  document.getElementById('station-title').textContent = stationInfo[state.currentStation]?.title || '';
+}
+function muravishkaReact(type) {
+  const m = document.getElementById('muravishka');
+  m.classList.remove('happy','sad');
+  void m.offsetWidth;
+  m.classList.add(type);
+}
+function rightAnswer(points = 10) {
+  state.score += points;
+  state.streak++;
+  state.bestStreak = Math.max(state.bestStreak, state.streak);
+  if (state.streak > 1) state.score += state.streak * 2; // бонус за серию
+  updateHUD();
+  soundCorrect();
+  confetti();
+  muravishkaReact('happy');
+}
+function wrongAnswer() {
+  state.streak = 0;
+  updateHUD();
+  soundWrong();
+  muravishkaReact('sad');
+}
+
+// ====== ИГРА ======
+function startGame() {
+  document.getElementById('screen-start').classList.add('hidden');
+  document.getElementById('screen-game').classList.remove('hidden');
+  state.currentStation = 0;
+  updateHUD();
+  updateProgress();
+  runStation(0);
+}
+
+function nextStation() {
+  document.getElementById('nextBtn').classList.add('hidden');
+  state.currentStation++;
+  if (state.currentStation >= 5) {
+    endGame();
+    return;
+  }
+  updateProgress();
+  runStation(state.currentStation);
+}
+
+function finishStation() {
+  state.completed[state.currentStation] = true;
+  updateProgress();
+  if (state.currentStation === 4) {
+    document.getElementById('nextBtn').textContent = '🏆 Завершить';
+  } else {
+    document.getElementById('nextBtn').textContent = 'Дальше ➡️';
+  }
+  document.getElementById('nextBtn').classList.remove('hidden');
+  document.getElementById('game').innerHTML += '<p style="color:#2e7d32;font-weight:bold;font-size:17px;margin-top:12px;">✅ Станция пройдена!</p>';
+}
+
+function endGame() {
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-end').classList.remove('hidden');
+  document.getElementById('final-score').textContent = state.score;
+  const stars = state.score >= 150 ? '⭐⭐⭐' : state.score >= 90 ? '⭐⭐' : '⭐';
+  document.getElementById('final-stars').textContent = stars;
+  soundWin();
+  setTimeout(confetti, 300);
+  setTimeout(confetti, 800);
+}
+
+function runStation(n) {
+  const game = document.getElementById('game');
+  game.innerHTML = '';
+  if (n === 0) stationSorting();
+  else if (n === 1) stationSeasons();
+  else if (n === 2) stationOddOne();
+  else if (n === 3) stationTrueFalse();
+  else if (n === 4) stationMemory();
+}
+
+// ====== СТАНЦИЯ 1: СОРТИРОВКА ======
+function stationSorting() {
+  const game = document.getElementById('game');
+  const items = [
+    { emoji: '🌳', name: 'Берёза', alive: true },
+    { emoji: '☀️', name: 'Солнце', alive: false },
+    { emoji: '🐕', name: 'Собака', alive: true },
+    { emoji: '🪨', name: 'Камень', alive: false },
+    { emoji: '🦋', name: 'Бабочка', alive: true },
+    { emoji: '🌊', name: 'Река', alive: false },
+    { emoji: '🍄', name: 'Гриб', alive: true },
+    { emoji: '☁️', name: 'Облако', alive: false }
+  ].sort(() => Math.random() - 0.5);
+
+  let selected = null;
+  let remaining = items.length;
+
+  game.innerHTML = `
+    <h2>Распредели объекты 🧺</h2>
+    <p style="font-size:14px;color:#666;">Нажми на объект, потом на корзинку</p>
+    <div class="items-row" id="items-row"></div>
+    <div class="baskets">
+      <div class="basket green" data-alive="true">🌱<br>Живая<br>природа</div>
+      <div class="basket brown" data-alive="false">🪨<br>Неживая<br>природа</div>
+    </div>
+  `;
+
+  const row = document.getElementById('items-row');
+  items.forEach((it, i) => {
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.textContent = it.emoji;
+    el.title = it.name;
+    el.dataset.id = i;
+    el.onclick = () => {
+      document.querySelectorAll('.item').forEach(x => x.classList.remove('selected'));
+      el.classList.add('selected');
+      selected = { el, item: it };
+      beep(600, 0.05);
+    };
+    row.appendChild(el);
+  });
+
+  document.querySelectorAll('.basket').forEach(b => {
+    b.onclick = () => {
+      if (!selected) return;
+      const isAliveBasket = b.dataset.alive === 'true';
+      if (isAliveBasket === selected.item.alive) {
+        rightAnswer();
+        selected.el.classList.add('gone');
+        setTimeout(() => selected.el.remove(), 300);
+        remaining--;
+        selected = null;
+        if (remaining === 0) finishStation();
+      } else {
+        wrongAnswer();
+        selected.el.classList.remove('selected');
+        selected = null;
+      }
+    };
+  });
+}
+
+// ====== СТАНЦИЯ 2: ВРЕМЕНА ГОДА ======
+function stationSeasons() {
+  const clues = [
+    { text: '🍂 Листья желтеют и опадают', season: 'autumn' },
+    { text: '❄️ На улице снег и мороз', season: 'winter' },
+    { text: '🌷 Тает снег, бегут ручьи', season: 'spring' },
+    { text: '☀️ Ярко светит солнце, каникулы', season: 'summer' }
+  ].sort(() => Math.random() - 0.5);
+
+  let idx = 0;
+  const game = document.getElementById('game');
+
+  function render() {
+    if (idx >= clues.length) { finishStation(); return; }
+    const c = clues[idx];
+    game.innerHTML = `
+      <h2>Времена года 🌍</h2>
+      <p style="font-size:14px;color:#666;">К какому времени года относится признак?</p>
+      <div class="clue-box">${c.text}</div>
+      <div class="seasons-row">
+        <button class="season-btn s-spring" data-s="spring"><span class="emoji">🌸</span>Весна</button>
+        <button class="season-btn s-summer" data-s="summer"><span class="emoji">☀️</span>Лето</button>
+        <button class="season-btn s-autumn" data-s="autumn"><span class="emoji">🍁</span>Осень</button>
+        <button class="season-btn s-winter" data-s="winter"><span class="emoji">❄️</span>Зима</button>
+      </div>
+    `;
+    game.querySelectorAll('.season-btn').forEach(b => {
+      b.onclick = () => {
+        game.querySelectorAll('.season-btn').forEach(x => x.disabled = true);
+        if (b.dataset.s === c.season) {
+          b.style.background = '#a5d6a7';
+          rightAnswer();
+        } else {
+          b.style.background = '#ffcdd2';
+          const correct = game.querySelector(`[data-s="${c.season}"]`);
+          if (correct) correct.style.background = '#a5d6a7';
+          wrongAnswer();
+        }
+        setTimeout(() => { idx++; render(); }, 900);
+      };
+    });
+  }
+  render();
+}
+
+// ====== СТАНЦИЯ 3: НАЙДИ ЛИШНЕЕ ======
+function stationOddOne() {
+  const rounds = [
+    {
+      items: ['🌳 Берёза', '🌼 Ромашка', '🌳 Дуб', '🌳 Клён'],
+      correct: 1,
+      explain: 'Ромашка — трава, остальные — деревья'
+    },
+    {
+      items: ['🦊 Лиса', '🐺 Волк', '🐰 Заяц', '🐦 Воробей'],
+      correct: 3,
+      explain: 'Воробей — птица, остальные — звери'
+    },
+    {
+      items: ['☀️ Солнце', '🌊 Река', '🪨 Камень', '🌳 Дерево'],
+      correct: 3,
+      explain: 'Дерево — живая природа, остальное — неживая'
+    }
+  ];
+  let idx = 0;
+  const game = document.getElementById('game');
+
+  function render() {
+    if (idx >= rounds.length) { finishStation(); return; }
+    const r = rounds[idx];
+    game.innerHTML = `<h2>Найди лишнее 🔍</h2>
+      <p style="font-size:14px;color:#666;">Раунд ${idx+1} из ${rounds.length}</p>`;
+    r.items.forEach((it, i) => {
+      const b = document.createElement('button');
+      b.className = 'option-btn';
+      b.textContent = it;
+      b.onclick = () => {
+        game.querySelectorAll('.option-btn').forEach(x => x.disabled = true);
+        if (i === r.correct) {
+          b.classList.add('correct');
+          rightAnswer();
+        } else {
+          b.classList.add('wrong');
+          game.querySelectorAll('.option-btn')[r.correct].classList.add('correct');
+          wrongAnswer();
+        }
+        const ex = document.createElement('p');
+        ex.style.cssText = 'margin-top:10px;font-size:13px;color:#666;font-style:italic;';
+        ex.textContent = '💡 ' + r.explain;
+        game.appendChild(ex);
+        setTimeout(() => { idx++; render(); }, 1600);
+      };
+      game.appendChild(b);
+    });
+  }
+  render();
+}
+
+// ====== СТАНЦИЯ 4: ПРАВДА / НЕПРАВДА ======
+function stationTrueFalse() {
+  const facts = [
+    { text: '🇷🇺 Наша страна называется Россия', isTrue: true },
+    { text: '🏙 Столица России — Санкт-Петербург', isTrue: false },
+    { text: '🎨 Флаг России — трёхцветный', isTrue: true },
+    { text: '🦅 На гербе России изображён лев', isTrue: false },
+    { text: '🎵 Гимн — это торжественная песня страны', isTrue: true }
+  ].sort(() => Math.random() - 0.5);
+  let idx = 0;
+  const game = document.getElementById('game');
+
+  function render() {
+    if (idx >= facts.length) { finishStation(); return; }
+    const f = facts[idx];
+    game.innerHTML = `
+      <h2>Правда или нет? 🤔</h2>
+      <p style="font-size:14px;color:#666;">Вопрос ${idx+1} из ${facts.length}</p>
+      <div class="clue-box">${f.text}</div>
+      <div class="tf-btns">
+        <button class="tf-btn tf-true" data-v="true">✅ Правда</button>
+        <button class="tf-btn tf-false" data-v="false">❌ Неправда</button>
+      </div>
+    `;
+    game.querySelectorAll('.tf-btn').forEach(b => {
+      b.onclick = () => {
+        game.querySelectorAll('.tf-btn').forEach(x => x.disabled = true);
+        const ans = b.dataset.v === 'true';
+        if (ans === f.isTrue) {
+          rightAnswer();
+        } else {
+          wrongAnswer();
+        }
+        setTimeout(() => { idx++; render(); }, 900);
+      };
+    });
+  }
+  render();
+}
+
+// ====== СТАНЦИЯ 5: МЕМОРИ ======
+function stationMemory() {
+  const animals = ['🦊','🐻','🦉','🐸','🐝','🦋'];
+  let cards = [...animals, ...animals].sort(() => Math.random() - 0.5);
+  let first = null, second = null, lock = false, matched = 0;
+  const game = document.getElementById('game');
+  game.innerHTML = `<h2>Мемори-зоопарк 🧠</h2>
+    <p style="font-size:14px;color:#666;">Найди пары животных</p>
+    <div class="memory-grid" id="mem-grid"></div>
+    <p style="font-size:13px;color:#666;margin-top:8px;">Пар найдено: <b id="pairs">0</b> / 6</p>`;
+  const grid = document.getElementById('mem-grid');
+  cards.forEach((emoji, i) => {
+    const c = document.createElement('div');
+    c.className = 'mem-card';
+    c.textContent = '?';
+    c.dataset.emoji = emoji;
+    c.dataset.id = i;
+    c.onclick = () => {
+      if (lock || c.classList.contains('flipped') || c.classList.contains('matched')) return;
+      c.classList.add('flipped');
+      c.textContent = emoji;
+      beep(700, 0.05);
+      if (!first) { first = c; return; }
+      second = c; lock = true;
+      if (first.dataset.emoji === second.dataset.emoji) {
+        first.classList.add('matched'); second.classList.add('matched');
+        matched++;
+        document.getElementById('pairs').textContent = matched;
+        rightAnswer();
+        first = second = null; lock = false;
+        if (matched === 6) finishStation();
+      } else {
+        setTimeout(() => {
+          first.classList.remove('flipped'); second.classList.remove('flipped');
+          first.textContent = '?'; second.textContent = '?';
+          first = second = null; lock = false;
+          wrongAnswer();
+        }, 800);
+      }
+    };
+    grid.appendChild(c);
+  });
+}
+</script>
+</body>
+</html>
